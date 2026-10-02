@@ -22,7 +22,12 @@ import {
   ArrowRight,
   Globe,
   Tag,
-  FileText
+  FileText,
+  RefreshCw,
+  UserCheck,
+  CheckCircle2,
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { inquiriesApi } from '../api';
 
@@ -210,6 +215,168 @@ export default function InquiryDetailModal({
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getActionMeta = (action) => {
+    switch (action) {
+      case 'created':
+        return {
+          title: 'Inquiry Received',
+          icon: Sparkles,
+          iconBg: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+        };
+      case 'status_updated':
+        return {
+          title: 'Status Transition',
+          icon: RefreshCw,
+          iconBg: 'bg-blue-100 text-blue-700 border-blue-300',
+        };
+      case 'assigned':
+        return {
+          title: 'Lead Assigned',
+          icon: UserCheck,
+          iconBg: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+        };
+      case 'note_added':
+        return {
+          title: 'Internal Note Added',
+          icon: MessageSquare,
+          iconBg: 'bg-purple-100 text-purple-700 border-purple-300',
+        };
+      case 'reminder_created':
+        return {
+          title: 'Reminder Scheduled',
+          icon: Calendar,
+          iconBg: 'bg-amber-100 text-amber-700 border-amber-300',
+        };
+      case 'reminder_completed':
+        return {
+          title: 'Reminder Completed',
+          icon: CheckCircle2,
+          iconBg: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+        };
+      case 'reminder_reopened':
+        return {
+          title: 'Reminder Re-opened',
+          icon: RotateCcw,
+          iconBg: 'bg-slate-100 text-slate-700 border-slate-300',
+        };
+      case 'file_uploaded':
+        return {
+          title: 'File Attached',
+          icon: Paperclip,
+          iconBg: 'bg-sky-100 text-sky-700 border-sky-300',
+        };
+      default:
+        return {
+          title: (action || 'activity').replace('_', ' '),
+          icon: Clock,
+          iconBg: 'bg-slate-100 text-slate-700 border-slate-300',
+        };
+    }
+  };
+
+  const renderActivityDetails = (log) => {
+    const details = log.details || {};
+    switch (log.action) {
+      case 'status_updated':
+        return (
+          <div className="mt-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-slate-500 font-medium">Stage updated:</span>
+              <StatusBadge status={details.from || 'new'} size="xs" />
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              <StatusBadge status={details.to} size="xs" />
+            </div>
+            {details.note && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700 italic">
+                <span className="font-semibold text-slate-500 not-italic mr-1.5">Note:</span>
+                "{details.note}"
+              </div>
+            )}
+          </div>
+        );
+      case 'created':
+        return (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            {details.source && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-slate-700 font-semibold">
+                <Globe className="w-3.5 h-3.5 text-slate-500" />
+                Channel: <span className="capitalize">{details.source.replace('_', ' ')}</span>
+              </span>
+            )}
+            {details.campaign_tag && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg font-semibold">
+                <Tag className="w-3.5 h-3.5 text-blue-500" />
+                Campaign: {details.campaign_tag}
+              </span>
+            )}
+            {details.assigned_to && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg font-semibold">
+                <User className="w-3.5 h-3.5 text-indigo-500" />
+                Assigned to: {details.assigned_to}
+              </span>
+            )}
+          </div>
+        );
+      case 'assigned':
+        return (
+          <div className="mt-1.5 text-xs text-slate-700 flex items-center gap-1.5">
+            <span className="text-slate-500 font-medium">Assigned to:</span>
+            <span className="font-bold text-slate-900 bg-indigo-50 border border-indigo-200 text-indigo-800 px-2 py-0.5 rounded-md">
+              {details.assigned_to_name || 'Staff Member'}
+            </span>
+          </div>
+        );
+      case 'file_uploaded':
+        return (
+          <div className="mt-1.5 inline-flex items-center gap-2 bg-sky-50 border border-sky-200 text-sky-800 px-3 py-1.5 rounded-xl text-xs font-medium">
+            <FileText className="w-3.5 h-3.5 text-sky-600" />
+            <span className="font-bold">{details.filename}</span>
+            {details.size && <span className="text-sky-600 text-[11px]">({details.size})</span>}
+          </div>
+        );
+      case 'note_added':
+        return (
+          <div className="mt-1.5 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-700">
+            <span className="font-semibold text-slate-500 mr-1 uppercase text-[10px] tracking-wider bg-slate-200 px-1.5 py-0.5 rounded">
+              {details.type || 'Note'}
+            </span>
+            <span className="ml-1.5 font-medium">{details.preview || 'Internal comment recorded'}</span>
+          </div>
+        );
+      case 'reminder_created':
+        return (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-bold text-slate-800">{details.title}</span>
+            {details.remind_at && (
+              <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                Due: {details.remind_at}
+              </span>
+            )}
+          </div>
+        );
+      case 'reminder_completed':
+        return (
+          <div className="mt-1.5 text-xs text-emerald-700 font-semibold flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Completed task: "{details.title}"
+          </div>
+        );
+      case 'reminder_reopened':
+        return (
+          <div className="mt-1.5 text-xs text-slate-600 flex items-center gap-1.5">
+            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+            Re-opened task: "{details.title}"
+          </div>
+        );
+      default:
+        return details && Object.keys(details).length > 0 ? (
+          <div className="mt-1 text-xs text-slate-500 font-mono bg-slate-50 p-2 rounded border border-slate-200">
+            {JSON.stringify(details)}
+          </div>
+        ) : null;
+    }
   };
 
   return (
@@ -683,29 +850,57 @@ export default function InquiryDetailModal({
 
             {/* Tab 4: Activity Log History */}
             {activeTab === 'history' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100">
+                  <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+                    Chronological Audit Trail
+                  </span>
+                  <span>{inquiry.activity_logs?.length || 0} events recorded</span>
+                </div>
+
                 {inquiry.activity_logs && inquiry.activity_logs.length > 0 ? (
-                  <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                    {inquiry.activity_logs.map((log) => (
-                      <div key={log.id} className="relative">
-                        <div className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-blue-600 ring-4 ring-white" />
-                        <div className="text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-900 capitalize">
-                              {log.action?.replace('_', ' ')}
-                            </span>
-                            <span className="text-slate-400">&bull; {formatDate(log.created_at)}</span>
+                  <div className="relative pl-8 space-y-5 before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+                    {inquiry.activity_logs.map((log) => {
+                      const meta = getActionMeta(log.action);
+                      const Icon = meta.icon;
+                      return (
+                        <div key={log.id} className="relative group">
+                          {/* Timeline Node Icon Badge */}
+                          <div
+                            className={`absolute -left-8 top-0.5 w-7 h-7 rounded-xl border flex items-center justify-center shadow-xs transition-transform group-hover:scale-110 ${meta.iconBg}`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
                           </div>
-                          <p className="text-slate-600 mt-0.5">
-                            {log.user ? log.user.name : 'System / Visitor'}{' '}
-                            {log.details ? `- ${JSON.stringify(log.details)}` : ''}
-                          </p>
+
+                          {/* Event Card */}
+                          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 transition space-y-1.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-xs text-slate-900">
+                                  {meta.title}
+                                </span>
+                                <span className="text-[11px] text-slate-400">
+                                  by <strong className="text-slate-600 font-semibold">{log.user ? log.user.name : (log.action === 'created' ? 'Website Visitor' : 'Automated System')}</strong>
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-slate-400" />
+                                {formatDate(log.created_at)}
+                              </span>
+                            </div>
+
+                            {/* Human-friendly formatted details */}
+                            {renderActivityDetails(log)}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-400 text-center py-4">No activity history recorded.</p>
+                  <div className="text-center py-8 bg-slate-50 rounded-2xl border border-slate-200">
+                    <History className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs text-slate-500 font-semibold">No activity logs recorded yet.</p>
+                  </div>
                 )}
               </div>
             )}
