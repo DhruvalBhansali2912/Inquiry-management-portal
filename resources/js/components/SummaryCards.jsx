@@ -6,7 +6,8 @@ import {
   XCircle, 
   TrendingUp, 
   BellRing,
-  AlertCircle
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 
 export default function SummaryCards({ metrics, onFilterStatus }) {
@@ -114,8 +115,9 @@ export default function SummaryCards({ metrics, onFilterStatus }) {
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <span>{card.subtext}</span>
-              <span className="text-blue-600 font-medium group-hover:translate-x-0.5 transition-transform">
-                View &rarr;
+              <span className="text-blue-600 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                <span>View</span>
+                <ArrowRight className="w-3 h-3" />
               </span>
             </div>
           </div>

@@ -60,9 +60,10 @@ export default function DashboardOverview({
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate('inquiries')}
-            className="px-5 py-2.5 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-xl shadow-sm transition"
+            className="px-5 py-2.5 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
           >
-            {isAgent ? 'View My Inquiries &rarr;' : 'Manage Inquiries &rarr;'}
+            <span>{isAgent ? 'View My Inquiries' : 'Manage Inquiries'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -165,9 +166,10 @@ export default function DashboardOverview({
             </h3>
             <button
               onClick={() => onNavigate('reminders')}
-              className="text-xs text-blue-600 hover:underline font-semibold"
+              className="text-xs text-blue-600 hover:underline font-semibold flex items-center gap-1"
             >
-              View all &rarr;
+              <span>View all</span>
+              <ArrowRight className="w-3 h-3" />
             </button>
           </div>
 
@@ -188,7 +190,7 @@ export default function DashboardOverview({
                       Due: {new Date(rem.remind_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <span className="text-blue-600 font-bold">&rarr;</span>
+                  <ArrowRight className="w-4 h-4 text-blue-600 self-center shrink-0" />
                 </div>
               ))
             ) : (
@@ -207,9 +209,10 @@ export default function DashboardOverview({
           </div>
           <button
             onClick={() => onNavigate('inquiries')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-800"
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
           >
-            Open All Inquiries &rarr;
+            <span>Open All Inquiries</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -236,7 +239,7 @@ export default function DashboardOverview({
                 <span className="text-slate-400 text-[11px] hidden sm:inline">
                   {new Date(inq.created_at).toLocaleDateString()}
                 </span>
-                <span className="text-blue-600 font-bold">&rarr;</span>
+                <ArrowRight className="w-4 h-4 text-blue-600 shrink-0" />
               </div>
             </div>
           ))}
