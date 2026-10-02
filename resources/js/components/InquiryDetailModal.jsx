@@ -21,7 +21,8 @@ import {
   ShieldAlert,
   ArrowRight,
   Globe,
-  Tag
+  Tag,
+  FileText
 } from 'lucide-react';
 import { inquiriesApi } from '../api';
 
@@ -372,6 +373,54 @@ export default function InquiryDetailModal({
               </p>
             </div>
 
+            {/* Submitted Attachments Direct Access Box */}
+            {inquiry.attachments && inquiry.attachments.length > 0 && (
+              <div className="bg-blue-50/70 p-5 rounded-2xl border border-blue-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+                    <Paperclip className="w-4 h-4 text-blue-600" />
+                    Submitted Lead Attachments ({inquiry.attachments.length})
+                  </h4>
+                  <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/60 px-2.5 py-0.5 rounded-full">
+                    Ready to download
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {inquiry.attachments.map((file) => (
+                    <div
+                      key={file.id}
+                      className="bg-white p-3.5 rounded-xl border border-blue-100 flex items-center justify-between gap-3 shadow-xs hover:border-blue-300 transition"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs text-slate-900 truncate" title={file.original_filename}>
+                            {file.original_filename}
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {file.formatted_size} &bull; {file.user ? file.user.name : 'Submitted with Lead'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => inquiriesApi.downloadFile(inquiry.id, file.id, file.original_filename)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow transition"
+                          title="Download File"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Tab Navigation */}
             <div className="border-b border-slate-200 flex items-center gap-6 text-sm">
               <button
@@ -605,15 +654,14 @@ export default function InquiryDetailModal({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <a
-                            href={inquiriesApi.getDownloadUrl(inquiry.id, file.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-semibold transition"
+                          <button
+                            type="button"
+                            onClick={() => inquiriesApi.downloadFile(inquiry.id, file.id, file.original_filename)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition"
                           >
                             <Download className="w-3.5 h-3.5" />
                             Download
-                          </a>
+                          </button>
                           {(currentUser?.role === 'admin' || file.user_id === currentUser?.id) && (
                             <button
                               onClick={() => handleDeleteAttachment(file.id)}

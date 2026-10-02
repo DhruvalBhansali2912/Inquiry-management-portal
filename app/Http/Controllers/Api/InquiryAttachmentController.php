@@ -57,6 +57,20 @@ class InquiryAttachmentController extends Controller
 
     public function download(Request $request, int $inquiryId, int $attachmentId): BinaryFileResponse|JsonResponse
     {
+        $user = $request->user();
+
+        // If not authenticated via header, check for token query parameter
+        if (!$user && $request->filled('token')) {
+            $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($request->query('token'));
+            if ($tokenModel && $tokenModel->tokenable) {
+                $user = $tokenModel->tokenable;
+            }
+        }
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         $attachment = InquiryAttachment::where('inquiry_id', $inquiryId)->findOrFail($attachmentId);
 
         if (!Storage::disk('local')->exists($attachment->file_path)) {

@@ -55,6 +55,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Attachments
     Route::post('/inquiries/{id}/attachments', [InquiryAttachmentController::class, 'store']);
-    Route::get('/inquiries/{id}/attachments/{attachmentId}/download', [InquiryAttachmentController::class, 'download']);
     Route::delete('/inquiries/{id}/attachments/{attachmentId}', [InquiryAttachmentController::class, 'destroy']);
 });
+
+// Download Attachment (Supports both Sanctum Bearer header and ?token= query parameter)
+Route::get('/inquiries/{id}/attachments/{attachmentId}/download', [InquiryAttachmentController::class, 'download']);
+

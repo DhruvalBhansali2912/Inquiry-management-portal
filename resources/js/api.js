@@ -62,7 +62,22 @@ export const inquiriesApi = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   deleteAttachment: (inquiryId, attachmentId) => api.delete(`/inquiries/${inquiryId}/attachments/${attachmentId}`),
-  getDownloadUrl: (inquiryId, attachmentId) => `/api/inquiries/${inquiryId}/attachments/${attachmentId}/download`,
+  getDownloadUrl: (inquiryId, attachmentId) => {
+    const token = localStorage.getItem('inquiry_auth_token');
+    return `/api/inquiries/${inquiryId}/attachments/${attachmentId}/download?token=${encodeURIComponent(token || '')}`;
+  },
+  downloadFile: async (inquiryId, attachmentId, filename) => {
+    const res = await api.get(`/inquiries/${inquiryId}/attachments/${attachmentId}/download`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
 };
 
 export const dashboardApi = {
