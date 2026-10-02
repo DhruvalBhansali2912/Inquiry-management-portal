@@ -15,8 +15,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        $inquiryQuery = Inquiry::query();
+        if ($user->isAgent()) {
+            $inquiryQuery->where('assigned_to', $user->id);
+        }
+
         // 1. Grouped counts by status using an optimized single query
-        $statusCounts = Inquiry::select('status', DB::raw('count(*) as total'))
+        $statusCounts = (clone $inquiryQuery)->select('status', DB::raw('count(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
@@ -34,19 +39,19 @@ class DashboardController extends Controller
         $conversionRate = $closedInquiries > 0 ? round(($wonCount / $closedInquiries) * 100, 1) : 0;
 
         // 2. Grouped counts by source
-        $sourceCounts = Inquiry::select('source', DB::raw('count(*) as total'))
+        $sourceCounts = (clone $inquiryQuery)->select('source', DB::raw('count(*) as total'))
             ->groupBy('source')
             ->pluck('total', 'source')
             ->toArray();
 
         // 3. Grouped counts by priority
-        $priorityCounts = Inquiry::select('priority', DB::raw('count(*) as total'))
+        $priorityCounts = (clone $inquiryQuery)->select('priority', DB::raw('count(*) as total'))
             ->groupBy('priority')
             ->pluck('total', 'priority')
             ->toArray();
 
         // 4. Recent inquiries
-        $recentInquiries = Inquiry::with('assignedUser:id,name,role')
+        $recentInquiries = (clone $inquiryQuery)->with('assignedUser:id,name,role')
             ->latest()
             ->limit(5)
             ->get(['id', 'reference_no', 'name', 'email', 'subject', 'status', 'priority', 'source', 'assigned_to', 'created_at']);

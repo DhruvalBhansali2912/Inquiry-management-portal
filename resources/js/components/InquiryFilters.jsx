@@ -8,6 +8,7 @@ export default function InquiryFilters({
   onExportCsv,
   teamMembers = [],
   isExporting = false,
+  currentUser,
 }) {
   const statuses = [
     { value: 'all', label: 'All Statuses' },
@@ -166,25 +167,38 @@ export default function InquiryFilters({
         </div>
 
         {/* Assigned Staff */}
-        <div>
-          <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-            Assigned Staff
-          </label>
-          <select
-            name="assigned_to"
-            value={filters.assigned_to || 'all'}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
-          >
-            <option value="all">All Staff</option>
-            <option value="unassigned">Unassigned Only</option>
-            {teamMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name} ({member.role})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Assigned Staff (Admin/Manager) or Assigned Scope (Agent) */}
+        {currentUser?.role === 'agent' ? (
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              Lead Scope
+            </label>
+            <div className="w-full px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              My Assigned Leads
+            </div>
+          </div>
+        ) : (
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+              Assigned Staff
+            </label>
+            <select
+              name="assigned_to"
+              value={filters.assigned_to || 'all'}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
+            >
+              <option value="all">All Staff</option>
+              <option value="unassigned">Unassigned Only</option>
+              {teamMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.role})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Date From */}
         <div>

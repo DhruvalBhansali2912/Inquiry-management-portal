@@ -19,12 +19,14 @@ export default function DashboardOverview({
   onSelectInquiry,
   onFilterStatus,
   onToggleReminder,
+  currentUser,
 }) {
   const metrics = metricsData?.metrics;
   const bySource = metricsData?.by_source || {};
   const byStatus = metricsData?.by_status || {};
   const recentInquiries = metricsData?.recent_inquiries || [];
   const upcomingReminders = metricsData?.upcoming_reminders || [];
+  const isAgent = currentUser?.role === 'agent';
 
   const sourceLabels = {
     website: 'Website / Organic',
@@ -44,13 +46,15 @@ export default function DashboardOverview({
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-blue-900/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-2">
-            Operations & Lead Pipeline
+            {isAgent ? 'My Sales Pipeline' : 'Company Pipeline & Operations'}
           </span>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Inquiry Management Hub
+            {isAgent ? `My Inquiries Pipeline` : 'Inquiry Management Hub'}
           </h1>
           <p className="text-sm text-blue-100 max-w-xl mt-1">
-            Capture, track, and convert website visitors and campaign leads into active accounts with end-to-end follow-up tracking.
+            {isAgent
+              ? `Welcome back, ${currentUser?.name}! Here are the active inquiries and follow-ups assigned specifically to you.`
+              : 'Capture, track, and convert website visitors and campaign leads into active accounts with end-to-end follow-up tracking.'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -58,7 +62,7 @@ export default function DashboardOverview({
             onClick={() => onNavigate('inquiries')}
             className="px-5 py-2.5 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-xl shadow-sm transition"
           >
-            Manage Inquiries &rarr;
+            {isAgent ? 'View My Inquiries &rarr;' : 'Manage Inquiries &rarr;'}
           </button>
         </div>
       </div>

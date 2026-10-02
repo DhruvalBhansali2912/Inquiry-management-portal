@@ -38,7 +38,11 @@ class InquiryController extends Controller
             $query->filterSource($request->input('source'));
         }
 
-        if ($request->filled('assigned_to')) {
+        // If current user is an agent, restrict visibility exclusively to their assigned leads
+        $currentUser = $request->user();
+        if ($currentUser && $currentUser->isAgent()) {
+            $query->where('assigned_to', $currentUser->id);
+        } elseif ($request->filled('assigned_to')) {
             $query->filterAssigned($request->input('assigned_to'));
         }
 
@@ -65,7 +69,7 @@ class InquiryController extends Controller
         return response()->json($inquiries);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $inquiry = Inquiry::with([
             'assignedUser:id,name,email,role,phone',
@@ -74,6 +78,11 @@ class InquiryController extends Controller
             'attachments.user:id,name',
             'activityLogs.user:id,name',
         ])->findOrFail($id);
+
+        $currentUser = $request->user();
+        if ($currentUser && $currentUser->isAgent() && $inquiry->assigned_to !== $currentUser->id) {
+            return response()->json(['message' => 'Unauthorized. You can only view inquiries assigned to you.'], 403);
+        }
 
         return response()->json(['data' => $inquiry]);
     }
@@ -130,6 +139,13 @@ class InquiryController extends Controller
 
     public function assign(Request $request, int $id): JsonResponse
     {
+        $currentUser = $request->user();
+        if (!$currentUser->canManageInquiries()) {
+            return response()->json([
+                'message' => 'Unauthorized. Only admins and managers can assign or reassign inquiries.',
+            ], 403);
+        }
+
         $request->validate([
             'assigned_to' => ['nullable', 'exists:users,id'],
         ]);
@@ -144,7 +160,7 @@ class InquiryController extends Controller
         // Log Activity
         InquiryActivityLog::create([
             'inquiry_id' => $inquiry->id,
-            'user_id' => $request->user()->id,
+            'user_id' => $currentUser->id,
             'action' => 'assigned',
             'details' => [
                 'assigned_to_id' => $newAssigneeId,
@@ -174,7 +190,14 @@ class InquiryController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
+        $user = $request->user();
         $query = Inquiry::query()->with('assignedUser:id,name');
+
+        if ($user && $user->isAgent()) {
+            $query->where('assigned_to', $user->id);
+        } elseif ($request->filled('assigned_to')) {
+            $query->filterAssigned($request->input('assigned_to'));
+        }
 
         if ($request->filled('search')) {
             $query->search($request->input('search'));
@@ -187,9 +210,6 @@ class InquiryController extends Controller
         }
         if ($request->filled('source')) {
             $query->filterSource($request->input('source'));
-        }
-        if ($request->filled('assigned_to')) {
-            $query->filterAssigned($request->input('assigned_to'));
         }
 
         $filename = 'inquiries_export_' . date('Y-m-d_His') . '.csv';

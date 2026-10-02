@@ -224,4 +224,67 @@ class InquiryManagementTest extends TestCase
         $response->assertStatus(200)
             ->assertHeader('Content-Type', 'text/csv; charset=utf-8');
     }
+
+    public function test_agent_can_only_see_inquiries_assigned_to_them(): void
+    {
+        // Inquiry assigned to this agent
+        $myInquiry = Inquiry::create([
+            'name' => 'Agent Lead',
+            'email' => 'agentlead@test.com',
+            'subject' => 'For Jim Halpert',
+            'message' => 'Lead meant for agent',
+            'status' => 'new',
+            'priority' => 'normal',
+            'assigned_to' => $this->agent->id,
+        ]);
+
+        // Inquiry assigned to someone else
+        $otherInquiry = Inquiry::create([
+            'name' => 'Other Lead',
+            'email' => 'otherlead@test.com',
+            'subject' => 'For Admin Only',
+            'message' => 'Lead meant for admin',
+            'status' => 'new',
+            'priority' => 'normal',
+            'assigned_to' => $this->admin->id,
+        ]);
+
+        // Inquiry unassigned
+        $unassignedInquiry = Inquiry::create([
+            'name' => 'Unassigned Lead',
+            'email' => 'unassigned@test.com',
+            'subject' => 'Open pool',
+            'message' => 'Lead in open pool',
+            'status' => 'new',
+            'priority' => 'normal',
+            'assigned_to' => null,
+        ]);
+
+        $response = $this->actingAs($this->agent, 'sanctum')
+            ->getJson('/api/inquiries');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.id', $myInquiry->id);
+    }
+
+    public function test_agent_cannot_reassign_inquiry(): void
+    {
+        $inquiry = Inquiry::create([
+            'name' => 'Agent Lead',
+            'email' => 'agentlead@test.com',
+            'subject' => 'For Jim Halpert',
+            'message' => 'Lead meant for agent',
+            'status' => 'new',
+            'priority' => 'normal',
+            'assigned_to' => $this->agent->id,
+        ]);
+
+        $response = $this->actingAs($this->agent, 'sanctum')
+            ->patchJson("/api/inquiries/{$inquiry->id}/assign", [
+                'assigned_to' => $this->admin->id,
+            ]);
+
+        $response->assertStatus(403);
+    }
 }

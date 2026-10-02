@@ -223,6 +223,7 @@ export default function MainApp() {
             onNavigate={setCurrentView}
             onSelectInquiry={(id) => setSelectedInquiryId(id)}
             onFilterStatus={handleFilterStatusFromCard}
+            currentUser={currentUser}
           />
         )}
 
@@ -232,10 +233,12 @@ export default function MainApp() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Inquiry Registry & Leads
+                  {currentUser.role === 'agent' ? 'My Assigned Inquiries & Leads' : 'Inquiry Registry & Leads'}
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Filter, manage, assign, and update lead status through conversion
+                  {currentUser.role === 'agent'
+                    ? 'Track and convert leads assigned directly to your sales pipeline'
+                    : 'Filter, manage, assign, and update lead status through conversion'}
                 </p>
               </div>
             </div>
@@ -247,6 +250,7 @@ export default function MainApp() {
               onExportCsv={handleExportCsv}
               teamMembers={teamMembers}
               isExporting={isExporting}
+              currentUser={currentUser}
             />
 
             <InquiryTable

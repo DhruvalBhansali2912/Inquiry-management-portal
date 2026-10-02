@@ -478,18 +478,30 @@ export default function InquiryDetailModal({
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                     Assignee
                   </label>
-                  <select
-                    value={inquiry.assigned_to || 'none'}
-                    onChange={(e) => handleAssignChange(e.target.value)}
-                    className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="none">-- Unassigned --</option>
-                    {teamMembers.map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.name} ({member.role})
-                      </option>
-                    ))}
-                  </select>
+                  {currentUser?.role === 'admin' || currentUser?.role === 'manager' ? (
+                    <select
+                      value={inquiry.assigned_to || 'none'}
+                      onChange={(e) => handleAssignChange(e.target.value)}
+                      className="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="none">-- Unassigned --</option>
+                      {teamMembers.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name} ({member.role})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-100/90 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800">
+                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                        {inquiry.assigned_user ? inquiry.assigned_user.name.charAt(0) : '?'}
+                      </span>
+                      <span className="truncate">{inquiry.assigned_user ? inquiry.assigned_user.name : 'Unassigned'}</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 ml-auto whitespace-nowrap">
+                        (Assigned to You)
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <form onSubmit={handleStatusSubmit} className="space-y-2">
