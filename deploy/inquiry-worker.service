@@ -1,0 +1,21 @@
+# ==============================================================================
+# Systemd Unit: Inquiry Queue Worker
+# Target OS: AlmaLinux 9
+# Location: /etc/systemd/system/inquiry-worker.service
+# ==============================================================================
+
+[Unit]
+Description=Inquiry Management Portal Queue Worker
+After=network.target mysql.service mariadb.service
+
+[Service]
+Type=simple
+User=nginx
+Group=nginx
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/assessment
+ExecStart=/usr/bin/php /var/www/assessment/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+
+[Install]
+WantedBy=multi-user.target

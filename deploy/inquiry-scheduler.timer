@@ -1,0 +1,18 @@
+# ==============================================================================
+# Systemd Timer: Run Inquiry Scheduler Every Minute
+# Target OS: AlmaLinux 9
+# Location: /etc/systemd/system/inquiry-scheduler.timer
+# ==============================================================================
+
+[Unit]
+Description=Run Inquiry Portal Scheduler every minute
+RefuseManualStart=no
+RefuseManualStop=no
+
+[Timer]
+Persistent=true
+OnCalendar=*-*-* *:*:00
+Unit=inquiry-scheduler.service
+
+[Install]
+WantedBy=timers.target

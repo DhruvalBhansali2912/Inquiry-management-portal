@@ -1,0 +1,19 @@
+# ==============================================================================
+# Systemd Unit: Laravel Scheduler
+# Target OS: AlmaLinux 9
+# Location: /etc/systemd/system/inquiry-scheduler.service
+# ==============================================================================
+
+[Unit]
+Description=Inquiry Management Portal Scheduler
+After=network.target
+
+[Service]
+Type=oneshot
+User=nginx
+Group=nginx
+WorkingDirectory=/var/www/assessment
+ExecStart=/usr/bin/php /var/www/assessment/artisan schedule:run
+
+[Install]
+WantedBy=multi-user.target
