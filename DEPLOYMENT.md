@@ -1,25 +1,59 @@
-# Production Deployment Guide: AlmaLinux 9 VPS (Bluehost)
+# Production Deployment Guide: inquiryportal.inventkid.com
+### OS: AlmaLinux 9 VPS (Bluehost) | CI/CD: GitHub Actions
 
-This guide provides end-to-end instructions for deploying the **Inquiry Management Portal** to an **AlmaLinux 9 Bluehost VPS** with automated CI/CD using GitHub Actions.
+This guide provides end-to-end instructions for deploying the **Inquiry Management Portal** to your Bluehost AlmaLinux 9 VPS under the subdomain **`inquiryportal.inventkid.com`**, backed by automated CI/CD using GitHub Actions connected to your repository **`DhruvalBhansali2912/Inquiry-management-portal`**.
 
 ---
 
-## 1. Initial AlmaLinux 9 Server Setup
+## 1. Local Machine: Push Code to GitHub
 
-Log in to your Bluehost VPS via terminal SSH:
+First, make sure all code is committed and pushed to your GitHub repository:
 
 ```bash
-ssh root@YOUR_SERVER_IP
+cd /path/to/assessment
+
+# Verify remote is set to your GitHub repo
+git remote -v
+# If needed, set origin:
+# git remote set-url origin https://github.com/DhruvalBhansali2912/Inquiry-management-portal.git
+
+# Ensure current branch is main
+git branch -M main
+
+# Push code to GitHub
+git push -u origin main
 ```
 
-### 1.1 Update the OS and Install Core Packages
+---
+
+## 2. DNS Record Setup (Domain Registrar / cPanel / Cloudflare)
+
+Before configuring SSL or Nginx on your VPS, create the DNS **A Record** pointing `inquiryportal.inventkid.com` to your VPS IP:
+
+| Type | Name / Host | Value / Target | TTL |
+|---|---|---|---|
+| **A** | `inquiryportal` | `YOUR_BLUEHOST_VPS_IP` | 300 / Auto |
+
+*Note: Allow 5-15 minutes for DNS propagation.* You can verify using `dig inquiryportal.inventkid.com +short` or `nslookup inquiryportal.inventkid.com`.
+
+---
+
+## 3. VPS Terminal: Initial Server Setup (One-time)
+
+SSH into your Bluehost AlmaLinux 9 VPS as `root` (or sudoer):
+
+```bash
+ssh root@YOUR_BLUEHOST_VPS_IP
+```
+
+### 3.1 Update OS & Install Base Tools
 ```bash
 dnf update -y
 dnf install -y epel-release dnf-utils git unzip curl rsync policycoreutils-python-utils
 ```
 
-### 1.2 Install PHP 8.2 (Remi Repository)
-AlmaLinux 9 comes with PHP 8.0 by default. Enable Remi's PHP 8.2 stream:
+### 3.2 Install PHP 8.2 (Remi Repository)
+AlmaLinux 9 defaults to PHP 8.0. Enable Remi's PHP 8.2 stream:
 
 ```bash
 dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
@@ -30,12 +64,17 @@ dnf install -y php-cli php-fpm php-mysqlnd php-pdo php-mbstring php-xml \
   php-ctype php-iconv php-intl php-fileinfo php-zip php-curl php-json php-gd
 ```
 
+Verify PHP version:
+```bash
+php -v # Should display PHP 8.2.x
+```
+
 Start and enable PHP-FPM:
 ```bash
 systemctl enable --now php-fpm
 ```
 
-### 1.3 Install Composer
+### 3.3 Install Composer
 ```bash
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
 php composer-setup.php --install-dir=/usr/local/bin --filename=composer
@@ -43,22 +82,22 @@ php -r "unlink('composer-setup.php');"
 composer --version
 ```
 
-### 1.4 Install Nginx Web Server
+### 3.4 Install Nginx
 ```bash
 dnf install -y nginx
 systemctl enable --now nginx
 ```
 
-### 1.5 Install MariaDB / MySQL Database
+### 3.5 Install MariaDB Database
 ```bash
 dnf install -y mariadb-server mariadb
 systemctl enable --now mariadb
 
-# Secure the installation and set root password
+# Run security setup
 mariadb-secure-installation
 ```
 
-Create the application database and user:
+Log in and create the database and user:
 ```bash
 mariadb -u root -p
 ```
@@ -72,9 +111,9 @@ EXIT;
 
 ---
 
-## 2. Firewall & SELinux Configuration
+## 4. Firewall & SELinux Configuration
 
-### 2.1 Open Firewall Ports (firewalld)
+### 4.1 Open Firewall Ports (firewalld)
 ```bash
 firewall-cmd --permanent --add-service=http
 firewall-cmd --permanent --add-service=https
@@ -82,30 +121,32 @@ firewall-cmd --permanent --add-service=ssh
 firewall-cmd --reload
 ```
 
-### 2.2 Configure SELinux for Nginx & PHP-FPM
-AlmaLinux 9 enforces SELinux by default:
-
+### 4.2 Configure SELinux & Project Directory
 ```bash
 # Allow Nginx to connect to network & send mail
 setsebool -P httpd_can_network_connect 1
 setsebool -P httpd_can_sendmail 1
 
-# Create project directory
-mkdir -p /var/www/assessment
-chown -R nginx:nginx /var/www/assessment
+# Create web root directory
+mkdir -p /var/www/inquiryportal.inventkid.com
+chown -R nginx:nginx /var/www/inquiryportal.inventkid.com
 
-# Set persistent SELinux write contexts for storage and cache
-semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/assessment/storage(/.*)?"
-semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/assessment/bootstrap/cache(/.*)?"
-restorecon -Rv /var/www/assessment
+# Configure SELinux contexts for storage and cache
+semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/inquiryportal.inventkid.com/storage(/.*)?"
+semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/inquiryportal.inventkid.com/bootstrap/cache(/.*)?"
+restorecon -Rv /var/www/inquiryportal.inventkid.com
 ```
 
 ---
 
-## 3. Web Server & PHP-FPM Configuration
+## 5. PHP-FPM & Nginx Virtual Host Setup
 
-### 3.1 Configure PHP-FPM User and Socket
+### 5.1 Configure PHP-FPM Pool
 Edit `/etc/php-fpm.d/www.conf`:
+```bash
+nano /etc/php-fpm.d/www.conf
+```
+Ensure these directives match:
 ```ini
 user = nginx
 group = nginx
@@ -114,122 +155,165 @@ listen.owner = nginx
 listen.group = nginx
 listen.mode = 0660
 ```
-Reload PHP-FPM:
+Restart PHP-FPM:
 ```bash
 systemctl restart php-fpm
 ```
 
-### 3.2 Install Nginx Virtual Host
-Copy `deploy/nginx.conf` to `/etc/nginx/conf.d/inquiry.conf`:
+### 5.2 Initial Clone on VPS (To populate deploy files)
 ```bash
-cp /var/www/assessment/deploy/nginx.conf /etc/nginx/conf.d/inquiry.conf
+cd /var/www
+git clone https://github.com/DhruvalBhansali2912/Inquiry-management-portal.git inquiryportal.inventkid.com
+cd /var/www/inquiryportal.inventkid.com
 ```
-Replace `yourdomain.com` with your domain name or server IP in `/etc/nginx/conf.d/inquiry.conf`.
-Test and reload Nginx:
+
+### 5.3 Copy Nginx Virtual Host
 ```bash
+cp /var/www/inquiryportal.inventkid.com/deploy/nginx.conf /etc/nginx/conf.d/inquiryportal.inventkid.com.conf
 nginx -t
 systemctl reload nginx
 ```
 
 ---
 
-## 4. Install Free Let's Encrypt SSL (Certbot)
+## 6. SSL Certificate with Let's Encrypt (Certbot)
 
+Install Certbot for Nginx on AlmaLinux 9:
 ```bash
 dnf install -y certbot python3-certbot-nginx
-certbot --nginx -d yourdomain.com -d www.yourdomain.com
+certbot --nginx -d inquiryportal.inventkid.com
 ```
-Certbot automatically installs a renewal timer in AlmaLinux 9 (`systemctl enable --now certbot-renew.timer`).
+Follow prompts to enter your email and agree to terms. Certbot will automatically update `/etc/nginx/conf.d/inquiryportal.inventkid.com.conf` with SSL certificates and HTTP-to-HTTPS redirect.
 
----
-
-## 5. Background Workers & Schedulers (Systemd)
-
-Install the pre-configured systemd worker and scheduler timers:
-
+Enable automatic SSL renewal timer:
 ```bash
-# Queue Worker for notifications and emails
-cp /var/www/assessment/deploy/inquiry-worker.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now inquiry-worker.service
-
-# Scheduler Timer (replaces crontab)
-cp /var/www/assessment/deploy/inquiry-scheduler.service /etc/systemd/system/
-cp /var/www/assessment/deploy/inquiry-scheduler.timer /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable --now inquiry-scheduler.timer
+systemctl enable --now certbot-renew.timer
 ```
 
 ---
 
-## 6. GitHub Actions CI/CD Secrets Setup
+## 7. Production `.env` and First-Time DB Setup on VPS
 
-In your GitHub repository, navigate to **Settings > Secrets and variables > Actions > New repository secret** and add:
-
-| Secret Name | Description | Example Value |
-|---|---|---|
-| `VPS_HOST` | Bluehost VPS public IP or hostname | `192.0.2.1` or `vps.yourdomain.com` |
-| `VPS_USERNAME` | SSH username on VPS | `root` or `deployer` |
-| `VPS_SSH_KEY` | Private SSH key for connecting to VPS | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `VPS_PORT` | SSH port (Bluehost usually uses 22) | `22` |
-
-### Setting Up the Deployment SSH Key:
-On your local machine or server:
+On the VPS, create `/var/www/inquiryportal.inventkid.com/.env`:
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_deploy
-# Add public key ~/.ssh/id_deploy.pub to VPS: /root/.ssh/authorized_keys
-# Add private key ~/.ssh/id_deploy contents to GitHub Secret: VPS_SSH_KEY
+cp .env.example .env
+nano .env
 ```
 
----
-
-## 7. First Deployment & Environment Variables
-
-On the VPS, create `/var/www/assessment/.env`:
+Configure production values:
 ```ini
 APP_NAME="Inquiry Management Portal"
 APP_ENV=production
-APP_KEY=base64:... # Generate via php artisan key:generate --show
+APP_KEY= # Generate using: php artisan key:generate --show
 APP_DEBUG=false
-APP_URL=https://yourdomain.com
+APP_URL=https://inquiryportal.inventkid.com
+
+LOG_CHANNEL=stack
+LOG_LEVEL=error
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=inquiry_portal
 DB_USERNAME=inquiry_user
-DB_PASSWORD=YOUR_STRONG_PASSWORD
+DB_PASSWORD=STRONG_SECRET_PASSWORD_HERE
 
 SESSION_DRIVER=database
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailgun.org # or Bluehost SMTP: mail.yourdomain.com
+MAIL_HOST=mail.inventkid.com # Or smtp.sendgrid.net / mailgun
 MAIL_PORT=587
-MAIL_USERNAME=your_smtp_user
-MAIL_PASSWORD=your_smtp_password
+MAIL_USERNAME=notifications@inventkid.com
+MAIL_PASSWORD=your_email_password
 MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS="no-reply@yourdomain.com"
-MAIL_FROM_NAME="${APP_NAME}"
+MAIL_FROM_ADDRESS="notifications@inventkid.com"
+MAIL_FROM_NAME="InventKid Inquiry Team"
+ADMIN_NOTIFICATION_EMAIL="admin@inventkid.com"
 ```
 
-Seed initial administrative staff:
+Generate the key and run the initial migration & seeder:
 ```bash
-cd /var/www/assessment
+php artisan key:generate --force
 php artisan migrate --force
 php artisan db:seed --force
+php artisan storage:link || true
 ```
 
-### Initial Credentials:
-- **Admin**: `admin@inquiry.local` (Password: `Password123!`)
-- **Manager**: `manager@inquiry.local` (Password: `Password123!`)
-- **Agent**: `agent@inquiry.local` (Password: `Password123!`)
+Set correct permissions:
+```bash
+chown -R nginx:nginx /var/www/inquiryportal.inventkid.com
+chmod -R 775 storage bootstrap/cache
+```
 
 ---
 
-## 8. Verifying Your Deployment
+## 8. Systemd Queue Worker & Scheduler
 
-1. **Public Intake Page**: Visit `https://yourdomain.com/` or `https://yourdomain.com/inquiry` and submit a test lead.
-2. **Staff Portal**: Click **Staff Login** and log in to view the real-time metrics, pipeline health, status workflow, and follow-up reminders.
-3. **Automated Deploys**: Any push to the `main` branch automatically triggers tests, builds frontend assets, deploys to VPS, warms caches, and reloads PHP-FPM with zero downtime.
+Enable background queue worker for email notifications and background tasks:
+```bash
+cp /var/www/inquiryportal.inventkid.com/deploy/inquiry-worker.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now inquiry-worker.service
+
+# Enable Laravel schedule timer (runs schedule:run every minute)
+cp /var/www/inquiryportal.inventkid.com/deploy/inquiry-scheduler.service /etc/systemd/system/
+cp /var/www/inquiryportal.inventkid.com/deploy/inquiry-scheduler.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now inquiry-scheduler.timer
+```
+
+---
+
+## 9. GitHub Actions CI/CD Setup
+
+To enable automated zero-downtime deployment every time you push to `main`:
+
+### 9.1 Generate a Dedicated SSH Key Pair
+On your VPS terminal (or your local computer):
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy -N ""
+```
+
+Add the public key to authorized keys on the VPS:
+```bash
+cat ~/.ssh/github_deploy.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Display the private key:
+```bash
+cat ~/.ssh/github_deploy
+```
+*(Copy the entire output, including `-----BEGIN OPENSSH PRIVATE KEY-----` and `-----END OPENSSH PRIVATE KEY-----`)*
+
+### 9.2 Add Secrets in GitHub
+Go to your repository:
+**`https://github.com/DhruvalBhansali2912/Inquiry-management-portal/settings/secrets/actions`**
+
+Click **"New repository secret"** and add:
+
+| Secret Name | Value |
+|---|---|
+| `VPS_HOST` | Your Bluehost VPS IP or server hostname |
+| `VPS_USERNAME` | `root` (or deployment user with sudo privileges) |
+| `VPS_SSH_KEY` | Paste the private key from `~/.ssh/github_deploy` |
+| `VPS_PORT` | `22` (or your custom SSH port if changed) |
+
+---
+
+## 10. Automated Deployment Test
+
+Now, anytime you push code:
+```bash
+git add .
+git commit -m "update"
+git push origin main
+```
+
+1. GitHub Actions will:
+   - Run PHPUnit tests and Vite frontend build.
+   - Rsync changed application files to `/var/www/inquiryportal.inventkid.com/`.
+   - Run `deploy/deploy-vps.sh` on the VPS to migrate DB, clear & warm caches, and reload PHP-FPM.
+2. Visit **`https://inquiryportal.inventkid.com`** to verify your live production site!
