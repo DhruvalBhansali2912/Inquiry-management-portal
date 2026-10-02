@@ -12,8 +12,8 @@ After=network.target
 Type=oneshot
 User=nginx
 Group=nginx
-WorkingDirectory=/var/www/assessment
-ExecStart=/usr/bin/php /var/www/assessment/artisan schedule:run
+WorkingDirectory=/var/www/inquiryportal.inventkid.com
+ExecStart=/usr/bin/php /var/www/inquiryportal.inventkid.com/artisan schedule:run
 
 [Install]
 WantedBy=multi-user.target

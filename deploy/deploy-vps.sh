@@ -6,7 +6,7 @@
 
 set -e
 
-APP_DIR="/var/www/assessment"
+APP_DIR="/var/www/inquiryportal.inventkid.com"
 WEB_USER="nginx"
 WEB_GROUP="nginx"
 

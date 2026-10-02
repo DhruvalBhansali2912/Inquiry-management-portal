@@ -100,8 +100,8 @@ jobs:
             --exclude='storage/framework/views/*' \
             --exclude='storage/logs/*' \
             -e "ssh -p ${{ secrets.VPS_PORT || 22 }} -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/assessment/
+            ./ ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }}:/var/www/inquiryportal.inventkid.com/
 
       - name: Execute Remote Deployment Script on VPS
         run: |
-          ssh -p ${{ secrets.VPS_PORT || 22 }} -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "bash /var/www/assessment/deploy/deploy-vps.sh"
+          ssh -p ${{ secrets.VPS_PORT || 22 }} -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "bash /var/www/inquiryportal.inventkid.com/deploy/deploy-vps.sh"
